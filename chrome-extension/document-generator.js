@@ -43,10 +43,10 @@ class DocumentGenerator {
       const worksheet = this.arrayToSheet(data);
       workbook.Sheets['Sheet1'] = worksheet;
 
-      // 生成 Excel 文件
-      const excelBuffer = this.writeWorkbook(workbook);
-      const blob = new Blob([excelBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      // 生成 CSV 文件（简化版）
+      const csvBuffer = this.writeWorkbook(workbook);
+      const blob = new Blob([csvBuffer], { 
+        type: 'text/csv;charset=utf-8;' 
       });
 
       return blob;
@@ -101,10 +101,10 @@ class DocumentGenerator {
         });
       }
 
-      // 生成 Word 文件
+      // 生成 HTML 文件（简化版）
       const docBuffer = await this.createWordDocument(doc);
       const blob = new Blob([docBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        type: 'text/html;charset=utf-8;' 
       });
 
       return blob;
@@ -200,27 +200,100 @@ class DocumentGenerator {
   }
 
   /**
-   * 写入工作簿（简化版，实际需要使用 xlsx 库）
+   * 写入工作簿（使用 CSV 格式作为简化实现）
    * @param {Object} workbook - 工作簿对象
    * @returns {ArrayBuffer} Excel 文件缓冲区
    */
   writeWorkbook(workbook) {
-    // 这里需要实际的 xlsx 库来生成文件
-    // 暂时返回一个占位符
-    console.warn('[DocumentGenerator] 需要集成 xlsx 库来生成实际的 Excel 文件');
-    return new ArrayBuffer(0);
+    // 简化实现：生成 CSV 格式
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const range = this.decodeRange(sheet['!ref']);
+    
+    let csv = '';
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      let row = [];
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = this.encodeCellAddress({ c: C, r: R });
+        const cell = sheet[cellAddress];
+        row.push(cell ? cell.v : '');
+      }
+      csv += row.join(',') + '\n';
+    }
+    
+    // 转换为 ArrayBuffer
+    const encoder = new TextEncoder();
+    return encoder.encode(csv).buffer;
   }
 
   /**
-   * 创建 Word 文档（简化版，实际需要使用 docx 库）
+   * 解码范围字符串
+   * @param {string} range - 范围字符串 (如 "A1:C3")
+   * @returns {Object} 范围对象
+   */
+  decodeRange(range) {
+    const parts = range.split(':');
+    return {
+      s: this.decodeCellAddress(parts[0]),
+      e: this.decodeCellAddress(parts[1])
+    };
+  }
+
+  /**
+   * 解码单元格地址
+   * @param {string} address - 单元格地址 (如 "A1")
+   * @returns {Object} 单元格坐标 {c, r}
+   */
+  decodeCellAddress(address) {
+    const match = address.match(/^([A-Z]+)(\d+)$/);
+    if (!match) return { c: 0, r: 0 };
+    
+    const col = match[1];
+    const row = parseInt(match[2]);
+    
+    let c = 0;
+    for (let i = 0; i < col.length; i++) {
+      c = c * 26 + (col.charCodeAt(i) - 64);
+    }
+    
+    return { c: c - 1, r: row - 1 };
+  }
+
+  /**
+   * 创建 Word 文档（使用简化的 HTML 格式）
    * @param {Object} doc - 文档对象
    * @returns {Promise<ArrayBuffer>} Word 文件缓冲区
    */
   async createWordDocument(doc) {
-    // 这里需要实际的 docx 库来生成文件
-    // 暂时返回一个占位符
-    console.warn('[DocumentGenerator] 需要集成 docx 库来生成实际的 Word 文件');
-    return new ArrayBuffer(0);
+    // 简化实现：生成 HTML 格式的文档
+    let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Document</title></head><body>';
+    
+    const section = doc.sections[0];
+    
+    for (const child of section.children) {
+      if (child.type === 'paragraph') {
+        if (child.heading === 'Heading1') {
+          html += `<h1>${child.text}</h1>`;
+        } else {
+          html += `<p>${child.text}</p>`;
+        }
+      } else if (child.type === 'table') {
+        html += '<table border="1" style="border-collapse: collapse; width: 100%;">';
+        for (const row of child.rows) {
+          html += '<tr>';
+          for (const cell of row) {
+            html += `<td style="padding: 8px;">${cell}</td>`;
+          }
+          html += '</tr>';
+        }
+        html += '</table>';
+      }
+    }
+    
+    html += '</body></html>';
+    
+    // 转换为 ArrayBuffer
+    const encoder = new TextEncoder();
+    return encoder.encode(html).buffer;
   }
 
   /**

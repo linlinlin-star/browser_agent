@@ -94,7 +94,7 @@
         
         generator.generateFromPageData('excel', 'export.xlsx');
         
-        showResult('Excel 文件生成成功！（注意：需要集成 xlsx 库才能生成实际文件）');
+        showResult('CSV 文件生成成功！文件已下载。');
       } catch (error) {
         showResult('生成失败: ' + error.message, true);
       }
@@ -110,7 +110,7 @@
         
         generator.generateFromPageData('word', 'document.docx');
         
-        showResult('Word 文档生成成功！（注意：需要集成 docx 库才能生成实际文件）');
+        showResult('HTML 文档生成成功！文件已下载。');
       } catch (error) {
         showResult('生成失败: ' + error.message, true);
       }
