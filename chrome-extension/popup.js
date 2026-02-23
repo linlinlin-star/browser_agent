@@ -468,6 +468,30 @@ function addChatMessage(type, text, icon) {
 }
 
 function addConsoleLog(text, type = 'info') {
+  // 初始化日志历史
+  if (!window.sessionLogs) {
+    window.sessionLogs = [];
+  }
+  
+  // 保存日志到历史
+  const logEntry = {
+    time: new Date().toLocaleTimeString('zh-CN', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    }),
+    text: text,
+    type: type
+  };
+  window.sessionLogs.push(logEntry);
+  
+  // 只在 Current Session 标签页激活时才显示日志
+  const activeTab = document.querySelector('.console-tab.active');
+  if (!activeTab || activeTab.dataset.tab !== 'session') {
+    return; // 如果不在 session 标签页，不显示
+  }
+  
   const consoleContent = document.getElementById('console-content');
   const empty = consoleContent.querySelector('.console-empty');
   if (empty) empty.remove();
@@ -477,12 +501,7 @@ function addConsoleLog(text, type = 'info') {
   
   const time = document.createElement('div');
   time.className = 'console-time';
-  time.textContent = new Date().toLocaleTimeString('zh-CN', { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit',
-    fractionalSecondDigits: 3
-  });
+  time.textContent = logEntry.time;
   
   const entryText = document.createElement('div');
   entryText.className = 'console-text';
@@ -495,6 +514,9 @@ function addConsoleLog(text, type = 'info') {
 }
 
 function clearConsole() {
+  // 清除日志历史
+  window.sessionLogs = [];
+  
   const consoleContent = document.getElementById('console-content');
   consoleContent.innerHTML = `
     <div class="console-empty">
@@ -694,20 +716,67 @@ function initFileManager() {
     });
   });
   
-  renderFileList();
+  // 不要在初始化时渲染文件列表，保持 Current Session 的日志显示
 }
 
 // 切换控制台标签页
 function switchConsoleTab(tabName) {
   const consoleContent = document.getElementById('console-content');
   
+  // 更新标签页激活状态
+  document.querySelectorAll('.console-tab').forEach(tab => {
+    if (tab.dataset.tab === tabName) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  
   if (tabName === 'files') {
+    // 切换到 Files 标签页时，显示文件列表
     renderFileList();
   } else if (tabName === 'session') {
-    // 显示当前会话日志（已有功能）
+    // 切换到 Current Session 标签页时，恢复日志显示
+    restoreSessionLogs();
   }
 }
 
+// 恢复会话日志显示
+function restoreSessionLogs() {
+  const consoleContent = document.getElementById('console-content');
+  
+  // 如果有保存的日志，恢复显示
+  if (window.sessionLogs && window.sessionLogs.length > 0) {
+    consoleContent.innerHTML = '';
+    window.sessionLogs.forEach(log => {
+      const entry = document.createElement('div');
+      entry.className = `console-entry ${log.type}`;
+      
+      const time = document.createElement('div');
+      time.className = 'console-time';
+      time.textContent = log.time;
+      
+      const text = document.createElement('div');
+      text.className = 'console-text';
+      text.textContent = log.text;
+      
+      entry.appendChild(time);
+      entry.appendChild(text);
+      consoleContent.appendChild(entry);
+    });
+  } else {
+    // 如果没有日志，显示空状态
+    consoleContent.innerHTML = `
+      <div class="console-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M9 9h6M9 13h6M9 17h4"/>
+        </svg>
+        <span>控制台输出将显示在这里</span>
+      </div>
+    `;
+  }
+}
 // 渲染文件列表
 function renderFileList() {
   const consoleContent = document.getElementById('console-content');
@@ -725,7 +794,35 @@ function renderFileList() {
     return;
   }
   
-  let html = '<div class="file-list">';
+  // 获取统计信息
+  const stats = fileManager.getStats();
+  const totalSizeMB = (stats.totalSize / (1024 * 1024)).toFixed(2);
+  
+  let html = `
+    <div class="file-manager-container">
+      <div class="file-manager-header">
+        <div class="file-search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" 
+                 id="file-search-input" 
+                 placeholder="搜索文件...">
+        </div>
+        <div class="file-stats-bar">
+          <span>${stats.totalFiles} 个文件</span>
+          <span>·</span>
+          <span>${totalSizeMB} MB</span>
+        </div>
+        <div class="file-filter-bar">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="csv">📊 CSV</button>
+          <button class="filter-btn" data-filter="html">📄 HTML</button>
+        </div>
+      </div>
+      <div class="file-list" id="file-list-content">
+  `;
   
   files.forEach(file => {
     const date = new Date(file.createdAt).toLocaleString('zh-CN');
@@ -733,25 +830,31 @@ function renderFileList() {
     const sizeKB = (file.size / 1024).toFixed(2);
     
     html += `
-      <div class="file-item" data-file-id="${file.id}">
+      <div class="file-item" data-file-id="${file.id}" data-file-type="${file.type}">
         <div class="file-icon">${typeIcon}</div>
         <div class="file-info">
           <div class="file-name">${file.name}</div>
           <div class="file-meta">${date} · ${sizeKB} KB</div>
         </div>
         <div class="file-actions">
-          <button class="file-action-btn" onclick="previewFile('${file.id}')" title="预览">
+          <button class="file-action-btn" data-action="preview" data-file-id="${file.id}" title="预览">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
             </svg>
           </button>
-          <button class="file-action-btn" onclick="downloadFileById('${file.id}')" title="下载">
+          <button class="file-action-btn" data-action="duplicate" data-file-id="${file.id}" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+          <button class="file-action-btn" data-action="download" data-file-id="${file.id}" title="下载">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
           </button>
-          <button class="file-action-btn file-delete-btn" onclick="deleteFileById('${file.id}')" title="删除">
+          <button class="file-action-btn file-delete-btn" data-action="delete" data-file-id="${file.id}" title="删除">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
@@ -761,14 +864,182 @@ function renderFileList() {
     `;
   });
   
-  html += '</div>';
+  html += `
+      </div>
+    </div>
+  `;
   consoleContent.innerHTML = html;
+  
+  // 设置事件监听器
+  setupFileListEventListeners();
+}
+
+// 文件操作事件处理函数
+function handleFileAction(e) {
+  const button = e.target.closest('.file-action-btn');
+  if (!button) return;
+  
+  const action = button.dataset.action;
+  const fileId = button.dataset.fileId;
+  
+  console.log('[DEBUG] Button clicked:', action, fileId);
+  
+  switch (action) {
+    case 'preview':
+      window.previewFile(fileId);
+      break;
+    case 'duplicate':
+      window.duplicateFileById(fileId);
+      break;
+    case 'download':
+      window.downloadFileById(fileId);
+      break;
+    case 'delete':
+      window.deleteFileById(fileId);
+      break;
+  }
+}
+
+// 设置文件列表事件监听器
+function setupFileListEventListeners() {
+  // 搜索框
+  const searchInput = document.getElementById('file-search-input');
+  if (searchInput) {
+    // 移除旧的事件监听器（如果存在）
+    searchInput.removeEventListener('input', handleSearchInput);
+    searchInput.addEventListener('input', handleSearchInput);
+  }
+  
+  // 过滤按钮
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.removeEventListener('click', handleFilterClick);
+    btn.addEventListener('click', handleFilterClick);
+  });
+  
+  // 文件操作按钮 - 使用事件委托
+  const fileListContent = document.getElementById('file-list-content');
+  if (fileListContent) {
+    fileListContent.removeEventListener('click', handleFileAction);
+    fileListContent.addEventListener('click', handleFileAction);
+  }
+}
+
+// 搜索输入处理
+function handleSearchInput(e) {
+  window.searchFiles(e.target.value);
+}
+
+// 过滤按钮点击处理
+function handleFilterClick(e) {
+  const filter = e.currentTarget.dataset.filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  window.filterFiles(filter);
+}
+
+// 搜索文件
+window.searchFiles = function(query) {
+  const files = fileManager.searchFiles(query);
+  updateFileListDisplay(files);
+}
+
+// 过滤文件
+window.filterFiles = function(type) {
+  // 更新按钮状态
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // 过滤文件
+  const files = type === 'all' ? fileManager.getFiles() : fileManager.filterByType(type);
+  updateFileListDisplay(files);
+}
+
+// 更新文件列表显示
+function updateFileListDisplay(files) {
+  const listContent = document.getElementById('file-list-content');
+  if (!listContent) return;
+  
+  if (files.length === 0) {
+    listContent.innerHTML = `
+      <div class="console-empty" style="margin: 40px 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <span>未找到匹配的文件</span>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '';
+  files.forEach(file => {
+    const date = new Date(file.createdAt).toLocaleString('zh-CN');
+    const typeIcon = file.type === 'csv' ? '📊' : '📄';
+    const sizeKB = (file.size / 1024).toFixed(2);
+    
+    html += `
+      <div class="file-item" data-file-id="${file.id}" data-file-type="${file.type}">
+        <div class="file-icon">${typeIcon}</div>
+        <div class="file-info">
+          <div class="file-name">${file.name}</div>
+          <div class="file-meta">${date} · ${sizeKB} KB</div>
+        </div>
+        <div class="file-actions">
+          <button class="file-action-btn" data-action="preview" data-file-id="${file.id}" title="预览">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+          <button class="file-action-btn" data-action="duplicate" data-file-id="${file.id}" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+          <button class="file-action-btn" data-action="download" data-file-id="${file.id}" title="下载">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+          </button>
+          <button class="file-action-btn file-delete-btn" data-action="delete" data-file-id="${file.id}" title="删除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  
+  listContent.innerHTML = html;
+  
+  // 重新设置事件监听器
+  setupFileListEventListeners();
+}
+
+// 复制文件
+window.duplicateFileById = function(fileId) {
+  console.log('[DEBUG] duplicateFileById called with:', fileId);
+  const newFileId = fileManager.duplicateFile(fileId);
+  if (newFileId) {
+    const file = fileManager.getFile(newFileId);
+    addConsoleLog(`[FILE] 文件已复制: ${file.name}`, 'success');
+    showToast('文件已复制', 'success');
+    renderFileList();
+  }
 }
 
 // 预览文件
-function previewFile(fileId) {
+window.previewFile = function(fileId) {
+  console.log('[DEBUG] previewFile called with:', fileId);
   const file = fileManager.getFile(fileId);
-  if (!file) return;
+  if (!file) {
+    console.error('[DEBUG] File not found:', fileId);
+    return;
+  }
   
   const consoleContent = document.getElementById('console-content');
   
@@ -784,24 +1055,37 @@ function renderCSVPreview(file) {
   const consoleContent = document.getElementById('console-content');
   
   let html = `
-    <div class="file-preview">
+    <div class="file-preview" data-file-id="${file.id}">
       <div class="file-preview-header">
-        <button class="back-btn" onclick="renderFileList()">
+        <button class="back-btn" data-action="back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 19l-7-7 7-7"/>
           </svg>
           返回
         </button>
-        <span class="file-preview-title">${file.name}</span>
-        <button class="file-action-btn" onclick="downloadFileById('${file.id}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          下载
-        </button>
+        <div class="file-preview-title-group">
+          <span class="file-preview-title" id="file-title-${file.id}">${file.name}</span>
+          <button class="file-action-btn" data-action="rename" data-file-id="${file.id}" title="重命名">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="file-preview-actions">
+          <button class="file-action-btn" data-action="add-row" data-file-id="${file.id}" title="添加行">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 4v16m8-8H4"/>
+            </svg>
+          </button>
+          <button class="file-action-btn" data-action="download" data-file-id="${file.id}" title="下载">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="csv-table-container">
-        <table class="csv-table" id="csv-table-${file.id}">
+        <table class="csv-table" id="csv-table-${file.id}" data-file-id="${file.id}">
           <thead>
             <tr>
   `;
@@ -809,8 +1093,11 @@ function renderCSVPreview(file) {
   // 表头
   if (file.data.length > 0) {
     file.data[0].forEach((header, colIndex) => {
-      html += `<th>${header}</th>`;
+      html += `<th contenteditable="true" 
+                   data-row="0" 
+                   data-col="${colIndex}">${header}</th>`;
     });
+    html += `<th class="row-actions-header">操作</th>`;
   }
   
   html += `
@@ -826,12 +1113,20 @@ function renderCSVPreview(file) {
       html += `
         <td contenteditable="true" 
             data-row="${i}" 
-            data-col="${colIndex}"
-            onblur="updateCell('${file.id}', ${i}, ${colIndex}, this.textContent)">
+            data-col="${colIndex}">
           ${cell}
         </td>
       `;
     });
+    html += `
+      <td class="row-actions">
+        <button class="row-action-btn" data-action="delete-row" data-row="${i}" title="删除行">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </td>
+    `;
     html += '</tr>';
   }
   
@@ -840,49 +1135,220 @@ function renderCSVPreview(file) {
         </table>
       </div>
       <div class="file-preview-footer">
-        <span>${file.data.length - 1} 行数据</span>
-        <button class="btn-save" onclick="saveFileChanges('${file.id}')">保存更改</button>
-      </div>
-    </div>
-  `;
-  
-  consoleContent.innerHTML = html;
-}
-
-// 渲染 HTML 预览
-function renderHTMLPreview(file) {
-  const consoleContent = document.getElementById('console-content');
-  
-  let html = `
-    <div class="file-preview">
-      <div class="file-preview-header">
-        <button class="back-btn" onclick="renderFileList()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 19l-7-7 7-7"/>
-          </svg>
-          返回
-        </button>
-        <span class="file-preview-title">${file.name}</span>
-        <button class="file-action-btn" onclick="downloadFileById('${file.id}')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          下载
-        </button>
-      </div>
-      <div class="html-preview-container">
-        <div class="html-preview-content">
-          ${JSON.stringify(file.data, null, 2)}
+        <span class="file-stats">${file.data.length - 1} 行 × ${file.data[0]?.length || 0} 列</span>
+        <div class="file-footer-actions">
+          <button class="btn-secondary" data-action="cancel">取消</button>
+          <button class="btn-save" data-action="save" data-file-id="${file.id}">保存更改</button>
         </div>
       </div>
     </div>
   `;
   
   consoleContent.innerHTML = html;
+  
+  // 设置事件监听器
+  setupCSVPreviewEventListeners(file.id);
+}
+
+// 设置 CSV 预览事件监听器
+function setupCSVPreviewEventListeners(fileId) {
+  const preview = document.querySelector('.file-preview');
+  if (!preview) return;
+  
+  // 按钮点击事件
+  preview.addEventListener('click', (e) => {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+    
+    const action = button.dataset.action;
+    const targetFileId = button.dataset.fileId || fileId;
+    const row = button.dataset.row;
+    
+    console.log('[DEBUG] CSV Preview button clicked:', action, targetFileId, row);
+    
+    switch (action) {
+      case 'back':
+      case 'cancel':
+        renderFileList();
+        break;
+      case 'rename':
+        window.renameFile(targetFileId);
+        break;
+      case 'add-row':
+        window.addRowToCSV(targetFileId);
+        break;
+      case 'download':
+        window.downloadFileById(targetFileId);
+        break;
+      case 'delete-row':
+        window.deleteRowFromCSV(targetFileId, parseInt(row));
+        break;
+      case 'save':
+        window.saveFileChanges(targetFileId);
+        break;
+    }
+  });
+  
+  // 单元格编辑事件
+  const table = document.getElementById(`csv-table-${fileId}`);
+  if (table) {
+    table.addEventListener('blur', (e) => {
+      const cell = e.target;
+      if (cell.hasAttribute('contenteditable') && cell.hasAttribute('data-row')) {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        const value = cell.textContent;
+        window.updateCell(fileId, row, col, value);
+      }
+    }, true);
+  }
+}
+
+// 渲染 HTML 预览
+function renderHTMLPreview(file) {
+  const consoleContent = document.getElementById('console-content');
+  
+  // 生成 HTML 内容
+  let htmlContent = '';
+  const blob = fileManager.exportFile(file.id);
+  
+  if (blob) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const htmlText = e.target.result;
+      
+      let html = `
+        <div class="file-preview">
+          <div class="file-preview-header">
+            <button class="back-btn" onclick="renderFileList()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 19l-7-7 7-7"/>
+              </svg>
+              返回
+            </button>
+            <div class="file-preview-title-group">
+              <span class="file-preview-title" id="file-title-${file.id}">${file.name}</span>
+              <button class="file-action-btn" onclick="renameFile('${file.id}')" title="重命名">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="file-preview-actions">
+              <button class="file-action-btn" onclick="toggleHTMLViewMode('${file.id}')" title="切换视图">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+              <button class="file-action-btn" onclick="downloadFileById('${file.id}')" title="下载">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="html-preview-tabs">
+            <button class="html-tab active" data-mode="preview" onclick="switchHTMLTab('${file.id}', 'preview')">预览</button>
+            <button class="html-tab" data-mode="source" onclick="switchHTMLTab('${file.id}', 'source')">源代码</button>
+          </div>
+          <div class="html-preview-container">
+            <div class="html-preview-content" id="html-preview-${file.id}" data-mode="preview">
+              <iframe id="html-iframe-${file.id}" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            <div class="html-source-content" id="html-source-${file.id}" style="display: none;">
+              <pre><code>${escapeHtml(htmlText)}</code></pre>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      consoleContent.innerHTML = html;
+      
+      // 加载 HTML 到 iframe
+      const iframe = document.getElementById(`html-iframe-${file.id}`);
+      iframe.srcdoc = htmlText;
+    };
+    reader.readAsText(blob);
+  }
+}
+
+// 切换 HTML 标签页
+window.switchHTMLTab = function(fileId, mode) {
+  const previewContent = document.getElementById(`html-preview-${fileId}`);
+  const sourceContent = document.getElementById(`html-source-${fileId}`);
+  const tabs = document.querySelectorAll('.html-tab');
+  
+  tabs.forEach(tab => {
+    if (tab.dataset.mode === mode) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+  
+  if (mode === 'preview') {
+    previewContent.style.display = 'block';
+    sourceContent.style.display = 'none';
+  } else {
+    previewContent.style.display = 'none';
+    sourceContent.style.display = 'block';
+  }
+}
+
+// HTML 转义
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 添加行到 CSV
+window.addRowToCSV = function(fileId) {
+  const file = fileManager.getFile(fileId);
+  if (!file || !file.data || file.data.length === 0) return;
+  
+  const colCount = file.data[0].length;
+  const newRow = new Array(colCount).fill('');
+  file.data.push(newRow);
+  
+  renderCSVPreview(file);
+  addConsoleLog(`[FILE] 已添加新行`, 'info');
+}
+
+// 从 CSV 删除行
+window.deleteRowFromCSV = function(fileId, rowIndex) {
+  const file = fileManager.getFile(fileId);
+  if (!file || !file.data || rowIndex < 1) return;
+  
+  if (confirm('确定要删除这一行吗？')) {
+    file.data.splice(rowIndex, 1);
+    renderCSVPreview(file);
+    addConsoleLog(`[FILE] 已删除第 ${rowIndex} 行`, 'warning');
+  }
+}
+
+// 重命名文件
+window.renameFile = function(fileId) {
+  const file = fileManager.getFile(fileId);
+  if (!file) return;
+  
+  const newName = prompt('请输入新的文件名:', file.name);
+  if (newName && newName.trim() && newName !== file.name) {
+    file.name = newName.trim();
+    fileManager.saveToStorage();
+    
+    const titleElement = document.getElementById(`file-title-${fileId}`);
+    if (titleElement) {
+      titleElement.textContent = file.name;
+    }
+    
+    addConsoleLog(`[FILE] 文件已重命名为: ${file.name}`, 'success');
+  }
 }
 
 // 更新单元格
-function updateCell(fileId, row, col, value) {
+window.updateCell = function(fileId, row, col, value) {
   const file = fileManager.getFile(fileId);
   if (file && file.data[row]) {
     file.data[row][col] = value;
@@ -891,28 +1357,71 @@ function updateCell(fileId, row, col, value) {
 }
 
 // 保存文件更改
-function saveFileChanges(fileId) {
+window.saveFileChanges = function(fileId) {
   const file = fileManager.getFile(fileId);
   if (file) {
     fileManager.updateFile(fileId, file.data);
     addConsoleLog(`[FILE] 文件已保存: ${file.name}`, 'success');
+    
+    // 显示保存成功提示
+    showToast('保存成功', 'success');
   }
 }
 
 // 下载文件
-function downloadFileById(fileId) {
+window.downloadFileById = function(fileId) {
+  console.log('[DEBUG] downloadFileById called with:', fileId);
   fileManager.downloadFile(fileId);
-  addConsoleLog(`[FILE] 文件已下载`, 'success');
+  const file = fileManager.getFile(fileId);
+  addConsoleLog(`[FILE] 文件已下载: ${file?.name || ''}`, 'success');
+  showToast('文件已下载', 'success');
 }
 
-// 删除文件
-function deleteFileById(fileId) {
+// 删除文件（增强版）
+window.deleteFileById = function(fileId) {
+  console.log('[DEBUG] deleteFileById called with:', fileId);
   const file = fileManager.getFile(fileId);
-  if (file && confirm(`确定要删除文件 "${file.name}" 吗？`)) {
+  if (!file) return;
+  
+  // 创建自定义确认对话框
+  const confirmed = confirm(
+    `确定要删除文件 "${file.name}" 吗？\n\n` +
+    `文件信息：\n` +
+    `类型: ${file.type.toUpperCase()}\n` +
+    `大小: ${(file.size / 1024).toFixed(2)} KB\n` +
+    `创建时间: ${new Date(file.createdAt).toLocaleString('zh-CN')}\n\n` +
+    `此操作无法撤销！`
+  );
+  
+  if (confirmed) {
     fileManager.deleteFile(fileId);
     renderFileList();
     addConsoleLog(`[FILE] 文件已删除: ${file.name}`, 'warning');
+    showToast('文件已删除', 'warning');
   }
+}
+
+// 显示提示消息
+function showToast(message, type = 'info') {
+  // 移除已存在的 toast
+  const existingToast = document.querySelector('.toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  // 显示动画
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  // 3秒后自动隐藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 // 在文档生成后添加文件
@@ -938,5 +1447,21 @@ function onDocumentGenerated(filename, type, data, blob) {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
+  // 初始化日志历史
+  window.sessionLogs = [];
+  
+  // 初始化文件管理器（但不显示文件列表）
   initFileManager();
+  
+  // 确保默认显示 Current Session 标签页
+  const sessionTab = document.querySelector('.console-tab[data-tab="session"]');
+  if (sessionTab) {
+    sessionTab.classList.add('active');
+  }
+  
+  // 确保 Files 标签页不是激活状态
+  const filesTab = document.querySelector('.console-tab[data-tab="files"]');
+  if (filesTab) {
+    filesTab.classList.remove('active');
+  }
 });
