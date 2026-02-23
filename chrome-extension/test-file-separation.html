@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试文件和日志分离</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .log-area {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+      background: white;
+    }
+    .file-list {
+      list-style: none;
+      padding: 0;
+    }
+    .file-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: #f9f9f9;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .file-info {
+      flex: 1;
+    }
+    .file-actions button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>测试文件和日志分离</h1>
+  
+  <div class="section">
+    <h2>1. 生成测试文件</h2>
+    <button onclick="generateTestCSV()">生成 CSV 文件</button>
+    <button onclick="generateTestHTML()">生成 HTML 文件</button>
+  </div>
+
+  <div class="section">
+    <h2>2. 控制台日志（仅显示日志，不混入文件）</h2>
+    <div class="log-area" id="log-area">
+      <div style="color: #999;">日志将显示在这里...</div>
+    </div>
+    <button onclick="clearLogs()">清空日志</button>
+  </div>
+
+  <div class="section">
+    <h2>3. 文件列表（仅显示文件，不包含日志）</h2>
+    <ul class="file-list" id="file-list">
+      <li style="color: #999;">文件将显示在这里...</li>
+    </ul>
+    <button onclick="refreshFileList()">刷新列表</button>
+    <button onclick="clearAllFiles()">清空所有文件</button>
+  </div>
+
+  <script src="document-generator.js"></script>
+  <script src="file-manager.js"></script>
+  <script>
+    // 初始化
+    const fileManager = new FileManager();
+    fileManager.loadFromStorage();
+    const documentGenerator = new DocumentGenerator();
+
+    // 添加日志（仅在控制台显示）
+    function addLog(message, type = 'info') {
+      const logArea = document.getElementById('log-area');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const time = new Date().toLocaleTimeString('zh-CN');
+      entry.innerHTML = `<strong>[${time}]</strong> ${message}`;
+      logArea.appendChild(entry);
+      logArea.scrollTop = logArea.scrollHeight;
+      
+      // 同时输出到浏览器控制台
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    // 生成测试 CSV 文件
+    async function generateTestCSV() {
+      try {
+        addLog('开始生成 CSV 文件...', 'info');
+        
+        const testData = [
+          ['姓名', '年龄', '城市'],
+          ['张三', '25', '北京'],
+          ['李四', '30', '上海'],
+          ['王五', '28', '广州']
+        ];
+        
+        const blob = await documentGenerator.generateExcel(testData, 'test.csv');
+        addLog(`CSV 文件生成成功，大小: ${blob.size} 字节`, 'success');
+        
+        // 保存到 FileManager
+        const fileId = fileManager.addFile({
+          name: 'test.csv',
+          type: 'csv',
+          data: testData,
+          blob: blob,
+          size: blob.size
+        });
+        
+        addLog(`文件已保存到 FileManager，ID: ${fileId}`, 'success');
+        refreshFileList();
+        
+      } catch (error) {
+        addLog(`生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 生成测试 HTML 文件
+    async function generateTestHTML() {
+      try {
+        addLog('开始生成 HTML 文件...', 'info');
+        
+        const testContent = {
+          title: '测试文档',
+          paragraphs: ['这是第一段内容', '这是第二段内容'],
+          tables: [[
+            ['列1', '列2', '列3'],
+            ['数据1', '数据2', '数据3']
+          ]]
+        };
+        
+        const blob = await documentGenerator.generateWord(testContent, 'test.html');
+        addLog(`HTML 文件生成成功，大小: ${blob.size} 字节`, 'success');
+        
+        // 保存到 FileManager
+        const fileId = fileManager.addFile({
+          name: 'test.html',
+          type: 'html',
+          data: testContent,
+          blob: blob,
+          size: blob.size
+        });
+        
+        addLog(`文件已保存到 FileManager，ID: ${fileId}`, 'success');
+        refreshFileList();
+        
+      } catch (error) {
+        addLog(`生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 刷新文件列表
+    function refreshFileList() {
+      const fileList = document.getElementById('file-list');
+      const files = fileManager.getFiles();
+      
+      if (files.length === 0) {
+        fileList.innerHTML = '<li style="color: #999;">暂无文件</li>';
+        return;
+      }
+      
+      fileList.innerHTML = '';
+      files.forEach(file => {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        
+        const info = document.createElement('div');
+        info.className = 'file-info';
+        const icon = file.type === 'csv' ? '📊' : '📄';
+        const date = new Date(file.createdAt).toLocaleString('zh-CN');
+        info.innerHTML = `
+          <div><strong>${icon} ${file.name}</strong></div>
+          <div style="font-size: 12px; color: #666;">
+            类型: ${file.type.toUpperCase()} | 大小: ${file.size} 字节 | 创建时间: ${date}
+          </div>
+        `;
+        
+        const actions = document.createElement('div');
+        actions.className = 'file-actions';
+        actions.innerHTML = `
+          <button onclick="downloadFile('${file.id}')">下载</button>
+          <button onclick="deleteFile('${file.id}')" style="background: #dc3545;">删除</button>
+        `;
+        
+        li.appendChild(info);
+        li.appendChild(actions);
+        fileList.appendChild(li);
+      });
+      
+      addLog(`文件列表已刷新，共 ${files.length} 个文件`, 'info');
+    }
+
+    // 下载文件
+    function downloadFile(fileId) {
+      fileManager.downloadFile(fileId);
+      const file = fileManager.getFile(fileId);
+      addLog(`文件已下载: ${file.name}`, 'success');
+    }
+
+    // 删除文件
+    function deleteFile(fileId) {
+      const file = fileManager.getFile(fileId);
+      if (confirm(`确定要删除文件 "${file.name}" 吗？`)) {
+        fileManager.deleteFile(fileId);
+        addLog(`文件已删除: ${file.name}`, 'warning');
+        refreshFileList();
+      }
+    }
+
+    // 清空所有文件
+    function clearAllFiles() {
+      if (confirm('确定要清空所有文件吗？')) {
+        fileManager.clearAll();
+        addLog('所有文件已清空', 'warning');
+        refreshFileList();
+      }
+    }
+
+    // 清空日志
+    function clearLogs() {
+      const logArea = document.getElementById('log-area');
+      logArea.innerHTML = '<div style="color: #999;">日志已清空</div>';
+    }
+
+    // 页面加载时刷新文件列表
+    window.addEventListener('DOMContentLoaded', () => {
+      addLog('页面加载完成', 'info');
+      refreshFileList();
+    });
+  </script>
+</body>
+</html>

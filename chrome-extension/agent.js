@@ -15,6 +15,10 @@ const SYSTEM_PROMPT = `You are an intelligent browser automation agent. You exec
 - getMarkdown(): Get page content as markdown
 - getUrl(): Get current page URL
 - getTitle(): Get page title
+- generateDocument(data, type, filename): Generate Excel/Word from extracted data
+  * data: Array of objects [{col1: val1, col2: val2}, ...]
+  * type: 'excel' or 'word'
+  * filename: e.g. 'export.csv' or 'document.html'
 - askUser(question): Ask user for decision/input
 - finished(result): Mark task complete - ALWAYS call when done!
 
@@ -302,7 +306,7 @@ class BrowserAgent {
       this.apiKey = config.apiKey || '';
       this.apiEndpoint = config.apiEndpoint || 'https://api.openai.com/v1/chat/completions';
       this.model = config.model || 'gpt-4o';
-      this.maxSteps = config.maxSteps || 30;
+      this.maxSteps = config.maxSteps || 50; // 从 30 增加到 50，支持更复杂的任务
       this.stepCount = 0;
       this.history = [];
       this.stopped = false;
@@ -330,6 +334,14 @@ class BrowserAgent {
         this.executionOptimizer = new ExecutionOptimizer();
       } else {
         this.executionOptimizer = null;
+      }
+
+      // Initialize FileManager
+      if (typeof FileManager !== 'undefined') {
+        this.fileManager = new FileManager();
+        this.fileManager.loadFromStorage();
+      } else {
+        this.fileManager = null;
       }
 
       // Initialize execution trace system
@@ -1364,6 +1376,7 @@ class BrowserAgent {
       'getTitle': 'Getting title',
       'extractMultipleItems': 'Extracting multiple items',
       'askUser': 'Asking user',
+      'generateDocument': 'Generating document',
       'finished': 'Finishing task'
     };
 
@@ -1700,6 +1713,54 @@ class BrowserAgent {
         const finishedResult = args.result || args.content || args;
         console.log('[Agent] Task finished with result:', finishedResult);
         return { done: true, result: typeof finishedResult === 'object' ? JSON.stringify(finishedResult, null, 2) : finishedResult };
+      
+      case 'generateDocument':
+        // Generate Excel or Word document from extracted data
+        if (typeof DocumentGenerator !== 'undefined') {
+          try {
+            const generator = new DocumentGenerator();
+            const data = args.data || args.content || [];
+            const type = args.type || 'excel'; // 'excel' or 'word'
+            const filename = args.filename || (type === 'excel' ? 'export.csv' : 'document.html');
+            
+            // Set page data and instructions
+            generator.setPageData({ items: data });
+            generator.setUserInstructions(args.instructions || '生成文档');
+            
+            // Generate document
+            const genResult = await generator.generateFromPageData(type, filename);
+            
+            // Save to FileManager if available
+            if (typeof FileManager !== 'undefined' && this.fileManager) {
+              const fileId = this.fileManager.addFile({
+                name: filename,
+                type: type === 'excel' ? 'csv' : 'html',
+                data: genResult.data,
+                blob: genResult.blob,
+                size: genResult.size
+              });
+              
+              console.log(`[Agent] File saved to FileManager with ID: ${fileId}`);
+            }
+            
+            result = {
+              success: true,
+              type: type,
+              filename: filename,
+              itemCount: Array.isArray(data) ? data.length : 0,
+              size: genResult.size,
+              message: `${type === 'excel' ? 'CSV' : 'HTML'} 文件已生成并下载: ${filename}`
+            };
+            
+            console.log(`[Agent] Document generated: ${filename}`);
+          } catch (error) {
+            console.error('[Agent] Document generation failed:', error);
+            result = { success: false, error: error.message };
+          }
+        } else {
+          result = { success: false, error: 'DocumentGenerator not available' };
+        }
+        break;
         
       default:
         result = { success: false, error: `Unknown action: ${action}` };

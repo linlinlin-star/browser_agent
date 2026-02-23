@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件操作测试</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="chat.css">
+  <style>
+    body {
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .test-header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .test-header h1 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .test-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    .test-btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .test-btn:hover {
+      background: #0056b3;
+    }
+    
+    .test-btn.secondary {
+      background: #6c757d;
+    }
+    
+    .test-btn.danger {
+      background: #dc3545;
+    }
+    
+    .console-panel {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>📁 文件操作功能测试</h1>
+      <p>测试文件的预览、编辑、复制和删除功能</p>
+      
+      <div class="test-actions">
+        <button class="test-btn" onclick="generateTestCSV()">生成测试 CSV</button>
+        <button class="test-btn" onclick="generateTestHTML()">生成测试 HTML</button>
+        <button class="test-btn" onclick="generateMultiple()">生成多个文件</button>
+        <button class="test-btn secondary" onclick="testAllFunctions()">测试所有功能</button>
+        <button class="test-btn danger" onclick="clearAll()">清空所有</button>
+      </div>
+    </div>
+    
+    <div class="console-panel">
+      <div class="console-header">
+        <h2>文件管理</h2>
+      </div>
+      
+      <div class="console-tabs">
+        <button class="console-tab" data-tab="session">Current Session</button>
+        <button class="console-tab active" data-tab="files">Files</button>
+      </div>
+      
+      <div class="console-content" id="console-content">
+        <div class="console-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>暂无生成的文件</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="document-generator.js"></script>
+  <script src="file-manager.js"></script>
+  <script src="popup.js"></script>
+  
+  <script>
+    // 生成测试 CSV
+    async function generateTestCSV() {
+      try {
+        console.log('[TEST] 生成测试 CSV...');
+        const data = [
+          ['姓名', '年龄', '城市', '职业'],
+          ['张三', '25', '北京', '工程师'],
+          ['李四', '30', '上海', '设计师'],
+          ['王五', '28', '广州', '产品经理'],
+          ['赵六', '32', '深圳', '项目经理']
+        ];
+        
+        const generator = new DocumentGenerator();
+        const blob = await generator.generateExcel(data, 'test_data.csv');
+        
+        fileManager.addFile({
+          name: 'test_data.csv',
+          type: 'csv',
+          data: data,
+          blob: blob,
+          size: blob.size
+        });
+        
+        console.log('[TEST] CSV 文件生成成功');
+        renderFileList();
+        alert('✅ CSV 文件生成成功！\n\n请点击预览按钮测试预览功能。');
+      } catch (error) {
+        console.error('[TEST] 生成失败:', error);
+        alert('❌ 生成失败: ' + error.message);
+      }
+    }
+    
+    // 生成测试 HTML
+    async function generateTestHTML() {
+      try {
+        console.log('[TEST] 生成测试 HTML...');
+        const content = {
+          title: '测试文档',
+          paragraphs: [
+            '这是一个测试文档的第一段内容。',
+            '这是第二段内容，用于测试 HTML 预览功能。',
+            '第三段包含一些示例文本。'
+          ],
+          tables: [[
+            ['项目', '数量', '单价', '总价'],
+            ['产品A', '10', '100', '1000'],
+            ['产品B', '20', '200', '4000'],
+            ['产品C', '15', '150', '2250']
+          ]]
+        };
+        
+        const generator = new DocumentGenerator();
+        const blob = await generator.generateWord(content, 'test_document.html');
+        
+        fileManager.addFile({
+          name: 'test_document.html',
+          type: 'html',
+          data: content,
+          blob: blob,
+          size: blob.size
+        });
+        
+        console.log('[TEST] HTML 文件生成成功');
+        renderFileList();
+        alert('✅ HTML 文件生成成功！\n\n请点击预览按钮测试预览功能。');
+      } catch (error) {
+        console.error('[TEST] 生成失败:', error);
+        alert('❌ 生成失败: ' + error.message);
+      }
+    }
+    
+    // 生成多个文件
+    async function generateMultiple() {
+      try {
+        console.log('[TEST] 批量生成文件...');
+        const generator = new DocumentGenerator();
+        
+        for (let i = 1; i <= 5; i++) {
+          const data = [
+            ['ID', '名称', '值'],
+            [i, `项目${i}`, `数据${i}`]
+          ];
+          
+          const blob = await generator.generateExcel(data, `batch_${i}.csv`);
+          
+          fileManager.addFile({
+            name: `batch_${i}.csv`,
+            type: 'csv',
+            data: data,
+            blob: blob,
+            size: blob.size
+          });
+        }
+        
+        console.log('[TEST] 批量生成完成');
+        renderFileList();
+        alert('✅ 批量生成完成！\n\n生成了 5 个文件，请测试各种操作。');
+      } catch (error) {
+        console.error('[TEST] 批量生成失败:', error);
+        alert('❌ 批量生成失败: ' + error.message);
+      }
+    }
+    
+    // 测试所有功能
+    function testAllFunctions() {
+      const tests = [
+        '✅ 预览功能: 点击文件的"预览"按钮',
+        '✅ 编辑功能: 在预览页面编辑单元格，点击"保存更改"',
+        '✅ 添加行: 在 CSV 预览页面点击"添加行"按钮',
+        '✅ 删除行: 点击行末的删除按钮',
+        '✅ 重命名: 在预览页面点击文件名旁的重命名按钮',
+        '✅ 复制功能: 点击文件的"复制"按钮',
+        '✅ 下载功能: 点击文件的"下载"按钮',
+        '✅ 删除功能: 点击文件的"删除"按钮',
+        '✅ 搜索功能: 在搜索框输入关键词',
+        '✅ 过滤功能: 点击"CSV"或"HTML"过滤按钮'
+      ];
+      
+      alert('📋 功能测试清单：\n\n' + tests.join('\n'));
+    }
+    
+    // 清空所有
+    function clearAll() {
+      if (confirm('确定要清空所有文件吗？')) {
+        fileManager.clearAll();
+        renderFileList();
+        console.log('[TEST] 所有文件已清空');
+        alert('✅ 所有文件已清空');
+      }
+    }
+    
+    // 页面加载时渲染文件列表
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('[TEST] 页面加载完成');
+      console.log('[TEST] fileManager:', fileManager);
+      console.log('[TEST] previewFile:', typeof window.previewFile);
+      console.log('[TEST] duplicateFileById:', typeof window.duplicateFileById);
+      console.log('[TEST] downloadFileById:', typeof window.downloadFileById);
+      console.log('[TEST] deleteFileById:', typeof window.deleteFileById);
+      
+      renderFileList();
+    });
+  </script>
+</body>
+</html>

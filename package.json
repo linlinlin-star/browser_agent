@@ -24,7 +24,9 @@
   "license": "MIT",
   "dependencies": {
     "playwright": "^1.40.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "xlsx": "^0.18.5",
+    "docx": "^8.5.0"
   },
   "devDependencies": {
     "@types/jsdom": "^27.0.0",

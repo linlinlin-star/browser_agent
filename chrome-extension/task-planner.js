@@ -252,14 +252,14 @@ class TaskPlanner {
   /**
    * Calculates appropriate step budget based on sub-goal count
    * @param {Array} subGoals - Generated sub-goals
-   * @returns {number} Step budget (15, 30, or 50)
+   * @returns {number} Step budget (30, 50, or 80)
    * 
    * Requirements: 3.2, 3.3, 3.4, 3.5
    * 
    * Budget mapping:
-   * - 0-1 sub-goals: 15 steps (simple tasks)
-   * - 2-3 sub-goals: 30 steps (moderate complexity)
-   * - 4-5 sub-goals: 50 steps (complex tasks)
+   * - 0-1 sub-goals: 30 steps (simple tasks) - 增加以支持数据提取和文档生成
+   * - 2-3 sub-goals: 50 steps (moderate complexity)
+   * - 4-5 sub-goals: 80 steps (complex tasks)
    * 
    * Also allocates steps proportionally across sub-goals based on their
    * estimated complexity, updating each sub-goal's estimatedSteps field.
@@ -267,7 +267,7 @@ class TaskPlanner {
   static calculateStepBudget(subGoals) {
     // Handle empty or single sub-goal (simple tasks)
     if (!subGoals || subGoals.length <= 1) {
-      return 15;
+      return 30; // 从 15 增加到 30，支持数据提取和文档生成
     }
 
     const subGoalCount = subGoals.length;
@@ -275,12 +275,12 @@ class TaskPlanner {
 
     // Map sub-goal count to step budget
     if (subGoalCount >= 2 && subGoalCount <= 3) {
-      totalBudget = 30;
+      totalBudget = 50; // 从 30 增加到 50
     } else if (subGoalCount >= 4 && subGoalCount <= 5) {
-      totalBudget = 50;
+      totalBudget = 80; // 从 50 增加到 80
     } else {
       // Fallback for edge cases (shouldn't happen as generateSubGoals caps at 5)
-      totalBudget = 30;
+      totalBudget = 50;
     }
 
     // Calculate total estimated steps from all sub-goals

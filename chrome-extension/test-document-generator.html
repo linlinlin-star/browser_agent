@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文档生成器测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📄 文档生成器测试</h1>
+
+  <div class="section">
+    <h2>页面数据</h2>
+    <textarea id="page-data" placeholder="输入页面数据（JSON 格式）">
+{
+  "title": "产品列表",
+  "description": "这是一个产品列表示例",
+  "items": [
+    {"名称": "产品A", "价格": "100", "库存": "50"},
+    {"名称": "产品B", "价格": "200", "库存": "30"},
+    {"名称": "产品C", "价格": "150", "库存": "40"}
+  ]
+}
+    </textarea>
+  </div>
+
+  <div class="section">
+    <h2>用户指令</h2>
+    <textarea id="user-instructions" placeholder="输入生成指令">
+生成一个包含所有产品信息的表格，包括名称、价格和库存。
+    </textarea>
+  </div>
+
+  <div class="section">
+    <h2>生成文档</h2>
+    <button onclick="generateExcel()">生成 Excel</button>
+    <button onclick="generateWord()">生成 Word</button>
+    <div id="result" class="result" style="display: none;"></div>
+  </div>
+
+  <script src="document-generator.js"></script>
+  <script>
+    const generator = new DocumentGenerator();
+
+    function generateExcel() {
+      try {
+        const pageData = JSON.parse(document.getElementById('page-data').value);
+        const instructions = document.getElementById('user-instructions').value;
+        
+        generator.setPageData(pageData);
+        generator.setUserInstructions(instructions);
+        
+        generator.generateFromPageData('excel', 'export.xlsx');
+        
+        showResult('CSV 文件生成成功！文件已下载。');
+      } catch (error) {
+        showResult('生成失败: ' + error.message, true);
+      }
+    }
+
+    function generateWord() {
+      try {
+        const pageData = JSON.parse(document.getElementById('page-data').value);
+        const instructions = document.getElementById('user-instructions').value;
+        
+        generator.setPageData(pageData);
+        generator.setUserInstructions(instructions);
+        
+        generator.generateFromPageData('word', 'document.docx');
+        
+        showResult('HTML 文档生成成功！文件已下载。');
+      } catch (error) {
+        showResult('生成失败: ' + error.message, true);
+      }
+    }
+
+    function showResult(message, isError = false) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = message;
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = isError ? '#fee' : '#efe';
+      resultDiv.style.color = isError ? '#c33' : '#363';
+    }
+  </script>
+</body>
+</html>
