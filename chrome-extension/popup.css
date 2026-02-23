@@ -737,6 +737,13 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 0;
+  display: none;
 }
 
 .setting-group {
