@@ -336,6 +336,14 @@ class BrowserAgent {
         this.executionOptimizer = null;
       }
 
+      // Initialize FileManager
+      if (typeof FileManager !== 'undefined') {
+        this.fileManager = new FileManager();
+        this.fileManager.loadFromStorage();
+      } else {
+        this.fileManager = null;
+      }
+
       // Initialize execution trace system
       this.traceHistory = [];
       this.onTrace = config.onTrace || null;
@@ -1721,6 +1729,19 @@ class BrowserAgent {
             
             // Generate document
             const genResult = await generator.generateFromPageData(type, filename);
+            
+            // Save to FileManager if available
+            if (typeof FileManager !== 'undefined' && this.fileManager) {
+              const fileId = this.fileManager.addFile({
+                name: filename,
+                type: type === 'excel' ? 'csv' : 'html',
+                data: genResult.data,
+                blob: genResult.blob,
+                size: genResult.size
+              });
+              
+              console.log(`[Agent] File saved to FileManager with ID: ${fileId}`);
+            }
             
             result = {
               success: true,

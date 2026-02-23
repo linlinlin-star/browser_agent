@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件功能测试</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .test-section h2 {
+      color: #555;
+      margin-bottom: 15px;
+      font-size: 18px;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 8px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #0056b3;
+    }
+    
+    button.secondary {
+      background: #6c757d;
+    }
+    
+    button.secondary:hover {
+      background: #545b62;
+    }
+    
+    button.danger {
+      background: #dc3545;
+    }
+    
+    button.danger:hover {
+      background: #c82333;
+    }
+    
+    button.success {
+      background: #28a745;
+    }
+    
+    button.success:hover {
+      background: #218838;
+    }
+    
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .file-card {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      transition: all 0.2s;
+    }
+    
+    .file-card:hover {
+      border-color: #007bff;
+      box-shadow: 0 2px 8px rgba(0,123,255,0.2);
+    }
+    
+    .file-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .file-icon {
+      font-size: 32px;
+    }
+    
+    .file-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+      word-break: break-word;
+    }
+    
+    .file-meta {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 10px;
+    }
+    
+    .file-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .file-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .log-area {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 15px;
+    }
+    
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+      background: white;
+    }
+    
+    .log-entry.success {
+      border-left-color: #28a745;
+    }
+    
+    .log-entry.warning {
+      border-left-color: #ffc107;
+    }
+    
+    .log-entry.error {
+      border-left-color: #dc3545;
+    }
+    
+    input[type="text"] {
+      padding: 8px 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      font-size: 14px;
+      width: 300px;
+    }
+    
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📁 文件管理功能测试</h1>
+    
+    <!-- 统计信息 -->
+    <div class="test-section">
+      <h2>📊 统计信息</h2>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="total-files">0</div>
+          <div class="stat-label">总文件数</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+          <div class="stat-value" id="total-size">0</div>
+          <div class="stat-label">总大小 (MB)</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <div class="stat-value" id="csv-count">0</div>
+          <div class="stat-label">CSV 文件</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+          <div class="stat-value" id="html-count">0</div>
+          <div class="stat-label">HTML 文件</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 文件生成 -->
+    <div class="test-section">
+      <h2>➕ 生成测试文件</h2>
+      <div class="button-group">
+        <button onclick="generateSampleCSV()">生成示例 CSV</button>
+        <button onclick="generateLargeCSV()">生成大型 CSV (100行)</button>
+        <button onclick="generateSampleHTML()">生成示例 HTML</button>
+        <button onclick="generateMultipleFiles()">批量生成 (5个文件)</button>
+      </div>
+    </div>
+    
+    <!-- 搜索和过滤 -->
+    <div class="test-section">
+      <h2>🔍 搜索和过滤</h2>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="搜索文件名..." oninput="searchFiles()">
+        <button onclick="filterByType('all')">全部</button>
+        <button onclick="filterByType('csv')">CSV</button>
+        <button onclick="filterByType('html')">HTML</button>
+        <button class="secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+    
+    <!-- 文件列表 -->
+    <div class="test-section">
+      <h2>📄 文件列表</h2>
+      <div class="button-group">
+        <button class="success" onclick="refreshFileList()">刷新列表</button>
+        <button class="danger" onclick="clearAllFiles()">清空所有文件</button>
+      </div>
+      <div class="file-grid" id="file-grid"></div>
+    </div>
+    
+    <!-- 日志 -->
+    <div class="test-section">
+      <h2>📝 操作日志</h2>
+      <button class="secondary" onclick="clearLogs()">清空日志</button>
+      <div class="log-area" id="log-area"></div>
+    </div>
+  </div>
+
+  <script src="document-generator.js"></script>
+  <script src="file-manager.js"></script>
+  <script>
+    const fileManager = new FileManager();
+    fileManager.loadFromStorage();
+    const documentGenerator = new DocumentGenerator();
+    
+    let currentFilter = 'all';
+    let currentSearch = '';
+
+    // 添加日志
+    function addLog(message, type = 'info') {
+      const logArea = document.getElementById('log-area');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const time = new Date().toLocaleTimeString('zh-CN');
+      entry.innerHTML = `<strong>[${time}]</strong> ${message}`;
+      logArea.appendChild(entry);
+      logArea.scrollTop = logArea.scrollHeight;
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    // 更新统计信息
+    function updateStats() {
+      const stats = fileManager.getStats();
+      document.getElementById('total-files').textContent = stats.totalFiles;
+      document.getElementById('total-size').textContent = (stats.totalSize / (1024 * 1024)).toFixed(2);
+      document.getElementById('csv-count').textContent = stats.byType.csv?.count || 0;
+      document.getElementById('html-count').textContent = stats.byType.html?.count || 0;
+    }
+
+    // 生成示例 CSV
+    async function generateSampleCSV() {
+      try {
+        addLog('生成示例 CSV 文件...', 'info');
+        const data = [
+          ['姓名', '年龄', '城市', '职业'],
+          ['张三', '25', '北京', '工程师'],
+          ['李四', '30', '上海', '设计师'],
+          ['王五', '28', '广州', '产品经理']
+        ];
+        
+        const blob = await documentGenerator.generateExcel(data, 'sample.csv');
+        fileManager.addFile({
+          name: 'sample.csv',
+          type: 'csv',
+          data: data,
+          blob: blob,
+          size: blob.size
+        });
+        
+        addLog('示例 CSV 文件生成成功', 'success');
+        refreshFileList();
+      } catch (error) {
+        addLog(`生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 生成大型 CSV
+    async function generateLargeCSV() {
+      try {
+        addLog('生成大型 CSV 文件 (100行)...', 'info');
+        const data = [['ID', '姓名', '邮箱', '电话', '地址']];
+        
+        for (let i = 1; i <= 100; i++) {
+          data.push([
+            i,
+            `用户${i}`,
+            `user${i}@example.com`,
+            `138${String(i).padStart(8, '0')}`,
+            `地址${i}`
+          ]);
+        }
+        
+        const blob = await documentGenerator.generateExcel(data, 'large_data.csv');
+        fileManager.addFile({
+          name: 'large_data.csv',
+          type: 'csv',
+          data: data,
+          blob: blob,
+          size: blob.size
+        });
+        
+        addLog('大型 CSV 文件生成成功', 'success');
+        refreshFileList();
+      } catch (error) {
+        addLog(`生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 生成示例 HTML
+    async function generateSampleHTML() {
+      try {
+        addLog('生成示例 HTML 文件...', 'info');
+        const content = {
+          title: '测试文档',
+          paragraphs: [
+            '这是一个测试文档的第一段内容。',
+            '这是第二段内容，包含一些示例文本。'
+          ],
+          tables: [[
+            ['项目', '数量', '单价'],
+            ['产品A', '10', '100'],
+            ['产品B', '20', '200']
+          ]]
+        };
+        
+        const blob = await documentGenerator.generateWord(content, 'sample.html');
+        fileManager.addFile({
+          name: 'sample.html',
+          type: 'html',
+          data: content,
+          blob: blob,
+          size: blob.size
+        });
+        
+        addLog('示例 HTML 文件生成成功', 'success');
+        refreshFileList();
+      } catch (error) {
+        addLog(`生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 批量生成文件
+    async function generateMultipleFiles() {
+      try {
+        addLog('批量生成 5 个文件...', 'info');
+        
+        for (let i = 1; i <= 5; i++) {
+          const data = [
+            ['列1', '列2', '列3'],
+            [`数据${i}-1`, `数据${i}-2`, `数据${i}-3`]
+          ];
+          
+          const blob = await documentGenerator.generateExcel(data, `batch_${i}.csv`);
+          fileManager.addFile({
+            name: `batch_${i}.csv`,
+            type: 'csv',
+            data: data,
+            blob: blob,
+            size: blob.size
+          });
+        }
+        
+        addLog('批量生成完成', 'success');
+        refreshFileList();
+      } catch (error) {
+        addLog(`批量生成失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 搜索文件
+    function searchFiles() {
+      currentSearch = document.getElementById('search-input').value;
+      refreshFileList();
+    }
+
+    // 按类型过滤
+    function filterByType(type) {
+      currentFilter = type;
+      refreshFileList();
+    }
+
+    // 清除搜索
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      currentSearch = '';
+      currentFilter = 'all';
+      refreshFileList();
+    }
+
+    // 刷新文件列表
+    function refreshFileList() {
+      let files = fileManager.getFiles();
+      
+      // 应用搜索
+      if (currentSearch) {
+        files = fileManager.searchFiles(currentSearch);
+      }
+      
+      // 应用过滤
+      if (currentFilter !== 'all') {
+        files = files.filter(f => f.type === currentFilter);
+      }
+      
+      const grid = document.getElementById('file-grid');
+      
+      if (files.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #6c757d;">暂无文件</p>';
+      } else {
+        grid.innerHTML = '';
+        files.forEach(file => {
+          const card = createFileCard(file);
+          grid.appendChild(card);
+        });
+      }
+      
+      updateStats();
+      addLog(`文件列表已刷新，显示 ${files.length} 个文件`, 'info');
+    }
+
+    // 创建文件卡片
+    function createFileCard(file) {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      
+      const icon = file.type === 'csv' ? '📊' : '📄';
+      const date = new Date(file.createdAt).toLocaleString('zh-CN');
+      const sizeKB = (file.size / 1024).toFixed(2);
+      
+      card.innerHTML = `
+        <div class="file-card-header">
+          <div class="file-icon">${icon}</div>
+          <div class="file-name">${file.name}</div>
+        </div>
+        <div class="file-meta">
+          ${date}<br>
+          ${sizeKB} KB
+        </div>
+        <div class="file-actions">
+          <button onclick="downloadFile('${file.id}')">下载</button>
+          <button onclick="duplicateFile('${file.id}')">复制</button>
+          <button onclick="renameFile('${file.id}')">重命名</button>
+          <button class="danger" onclick="deleteFile('${file.id}')">删除</button>
+        </div>
+      `;
+      
+      return card;
+    }
+
+    // 下载文件
+    function downloadFile(fileId) {
+      fileManager.downloadFile(fileId);
+      const file = fileManager.getFile(fileId);
+      addLog(`文件已下载: ${file.name}`, 'success');
+    }
+
+    // 复制文件
+    function duplicateFile(fileId) {
+      const newFileId = fileManager.duplicateFile(fileId);
+      const file = fileManager.getFile(newFileId);
+      addLog(`文件已复制: ${file.name}`, 'success');
+      refreshFileList();
+    }
+
+    // 重命名文件
+    function renameFile(fileId) {
+      const file = fileManager.getFile(fileId);
+      const newName = prompt('请输入新的文件名:', file.name);
+      
+      if (newName && newName.trim() && newName !== file.name) {
+        if (fileManager.renameFile(fileId, newName)) {
+          addLog(`文件已重命名: ${file.name} → ${newName}`, 'success');
+          refreshFileList();
+        }
+      }
+    }
+
+    // 删除文件
+    function deleteFile(fileId) {
+      const file = fileManager.getFile(fileId);
+      if (confirm(`确定要删除文件 "${file.name}" 吗？`)) {
+        fileManager.deleteFile(fileId);
+        addLog(`文件已删除: ${file.name}`, 'warning');
+        refreshFileList();
+      }
+    }
+
+    // 清空所有文件
+    function clearAllFiles() {
+      if (confirm('确定要清空所有文件吗？此操作无法撤销！')) {
+        fileManager.clearAll();
+        addLog('所有文件已清空', 'warning');
+        refreshFileList();
+      }
+    }
+
+    // 清空日志
+    function clearLogs() {
+      document.getElementById('log-area').innerHTML = '';
+      addLog('日志已清空', 'info');
+    }
+
+    // 初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      addLog('页面加载完成', 'info');
+      refreshFileList();
+    });
+  </script>
+</body>
+</html>

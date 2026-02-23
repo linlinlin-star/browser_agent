@@ -58,8 +58,137 @@ class FileManager {
     if (file) {
       file.data = data;
       file.updatedAt = new Date().toISOString();
+      
+      // 重新生成 blob
+      if (file.type === 'csv') {
+        file.blob = this.generateCSVBlob(data);
+      } else if (file.type === 'html') {
+        file.blob = this.generateHTMLBlob(data);
+      }
+      
+      // 更新文件大小
+      if (file.blob) {
+        file.size = file.blob.size;
+      }
+      
       this.saveToStorage();
     }
+  }
+
+  /**
+   * 重命名文件
+   * @param {string} id - 文件 ID
+   * @param {string} newName - 新文件名
+   * @returns {boolean} 是否成功
+   */
+  renameFile(id, newName) {
+    const file = this.getFile(id);
+    if (file && newName && newName.trim()) {
+      file.name = newName.trim();
+      file.updatedAt = new Date().toISOString();
+      this.saveToStorage();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 复制文件
+   * @param {string} id - 文件 ID
+   * @returns {string} 新文件 ID
+   */
+  duplicateFile(id) {
+    const file = this.getFile(id);
+    if (!file) return null;
+    
+    const newFile = {
+      id: this.generateId(),
+      name: file.name.replace(/(\.[^.]+)$/, ' (副本)$1'),
+      type: file.type,
+      data: JSON.parse(JSON.stringify(file.data)), // 深拷贝
+      blob: file.blob,
+      createdAt: new Date().toISOString(),
+      size: file.size
+    };
+    
+    this.files.push(newFile);
+    this.saveToStorage();
+    
+    return newFile.id;
+  }
+
+  /**
+   * 批量删除文件
+   * @param {Array<string>} ids - 文件 ID 数组
+   * @returns {number} 删除的文件数量
+   */
+  deleteFiles(ids) {
+    const initialLength = this.files.length;
+    this.files = this.files.filter(f => !ids.includes(f.id));
+    const deletedCount = initialLength - this.files.length;
+    
+    if (deletedCount > 0) {
+      this.saveToStorage();
+    }
+    
+    return deletedCount;
+  }
+
+  /**
+   * 搜索文件
+   * @param {string} query - 搜索关键词
+   * @returns {Array} 匹配的文件列表
+   */
+  searchFiles(query) {
+    if (!query || !query.trim()) {
+      return this.files;
+    }
+    
+    const lowerQuery = query.toLowerCase().trim();
+    return this.files.filter(f => 
+      f.name.toLowerCase().includes(lowerQuery) ||
+      f.type.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  /**
+   * 按类型过滤文件
+   * @param {string} type - 文件类型
+   * @returns {Array} 匹配的文件列表
+   */
+  filterByType(type) {
+    if (!type) {
+      return this.files;
+    }
+    return this.files.filter(f => f.type === type);
+  }
+
+  /**
+   * 获取文件统计信息
+   * @returns {Object} 统计信息
+   */
+  getStats() {
+    const stats = {
+      totalFiles: this.files.length,
+      totalSize: 0,
+      byType: {}
+    };
+    
+    this.files.forEach(f => {
+      stats.totalSize += f.size || 0;
+      
+      if (!stats.byType[f.type]) {
+        stats.byType[f.type] = {
+          count: 0,
+          size: 0
+        };
+      }
+      
+      stats.byType[f.type].count++;
+      stats.byType[f.type].size += f.size || 0;
+    });
+    
+    return stats;
   }
 
   /**
