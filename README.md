@@ -16,6 +16,10 @@ A Chrome extension that helps you automate browser tasks using AI.
 - Automate browser tasks
 - Extract content from websites
 
+### Demo
+
+<video src="20260223-0231-15.6177277.mp4" controls width="100%"></video>
+
 ### Installation
 
 1. Download this repository
@@ -42,6 +46,10 @@ A Chrome extension that helps you automate browser tasks using AI.
 - 与 AI 对话讨论网页内容
 - 自动化浏览器任务
 - 从网站提取内容
+
+### 演示视频
+
+<video src="20260223-0231-15.6177277.mp4" controls width="100%"></video>
 
 ### 安装方法
 

@@ -1490,7 +1490,8 @@ class BrowserAgent {
             result = navResult;
           }
         } else {
-          const currentUrl = await this.sendMessageToContent('getUrl');
+          const currentUrlResult = await this.sendMessageToContent('getUrl');
+          const currentUrl = typeof currentUrlResult === 'string' ? currentUrlResult : (currentUrlResult?.url || '');
           console.log('[Agent] Current URL after click:', currentUrl);
           if (currentUrl && (currentUrl.includes('video/BV') || currentUrl.includes('video/av') || currentUrl.includes('/BV') || currentUrl.includes('/av'))) {
             result = { ...result, videoOpened: true };
