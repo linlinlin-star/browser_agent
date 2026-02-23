@@ -113,16 +113,13 @@ body {
 }
 
 .chat-messages::-webkit-scrollbar {
-  width: 6px;
+  width: 0;
+  display: none;
 }
 
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+.chat-messages {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .welcome-message {
@@ -546,16 +543,13 @@ body {
 }
 
 .console-content::-webkit-scrollbar {
-  width: 6px;
+  width: 0;
+  display: none;
 }
 
-.console-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.console-content::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+.console-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .console-empty {
