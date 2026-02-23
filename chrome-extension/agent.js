@@ -1720,13 +1720,14 @@ class BrowserAgent {
             generator.setUserInstructions(args.instructions || '生成文档');
             
             // Generate document
-            await generator.generateFromPageData(type, filename);
+            const genResult = await generator.generateFromPageData(type, filename);
             
             result = {
               success: true,
               type: type,
               filename: filename,
               itemCount: Array.isArray(data) ? data.length : 0,
+              size: genResult.size,
               message: `${type === 'excel' ? 'CSV' : 'HTML'} 文件已生成并下载: ${filename}`
             };
             

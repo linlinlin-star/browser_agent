@@ -676,3 +676,267 @@ const modalStyles = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = modalStyles;
 document.head.appendChild(styleSheet);
+
+
+// ==================== File Manager ====================
+
+const fileManager = new FileManager();
+
+// 初始化文件管理器
+function initFileManager() {
+  fileManager.loadFromStorage();
+  
+  // 标签页切换
+  document.querySelectorAll('.console-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.tab;
+      switchConsoleTab(tabName);
+    });
+  });
+  
+  renderFileList();
+}
+
+// 切换控制台标签页
+function switchConsoleTab(tabName) {
+  const consoleContent = document.getElementById('console-content');
+  
+  if (tabName === 'files') {
+    renderFileList();
+  } else if (tabName === 'session') {
+    // 显示当前会话日志（已有功能）
+  }
+}
+
+// 渲染文件列表
+function renderFileList() {
+  const consoleContent = document.getElementById('console-content');
+  const files = fileManager.getFiles();
+  
+  if (files.length === 0) {
+    consoleContent.innerHTML = `
+      <div class="console-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <span>暂无生成的文件</span>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '<div class="file-list">';
+  
+  files.forEach(file => {
+    const date = new Date(file.createdAt).toLocaleString('zh-CN');
+    const typeIcon = file.type === 'csv' ? '📊' : '📄';
+    const sizeKB = (file.size / 1024).toFixed(2);
+    
+    html += `
+      <div class="file-item" data-file-id="${file.id}">
+        <div class="file-icon">${typeIcon}</div>
+        <div class="file-info">
+          <div class="file-name">${file.name}</div>
+          <div class="file-meta">${date} · ${sizeKB} KB</div>
+        </div>
+        <div class="file-actions">
+          <button class="file-action-btn" onclick="previewFile('${file.id}')" title="预览">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+          <button class="file-action-btn" onclick="downloadFileById('${file.id}')" title="下载">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+          </button>
+          <button class="file-action-btn file-delete-btn" onclick="deleteFileById('${file.id}')" title="删除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  consoleContent.innerHTML = html;
+}
+
+// 预览文件
+function previewFile(fileId) {
+  const file = fileManager.getFile(fileId);
+  if (!file) return;
+  
+  const consoleContent = document.getElementById('console-content');
+  
+  if (file.type === 'csv') {
+    renderCSVPreview(file);
+  } else {
+    renderHTMLPreview(file);
+  }
+}
+
+// 渲染 CSV 预览
+function renderCSVPreview(file) {
+  const consoleContent = document.getElementById('console-content');
+  
+  let html = `
+    <div class="file-preview">
+      <div class="file-preview-header">
+        <button class="back-btn" onclick="renderFileList()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 19l-7-7 7-7"/>
+          </svg>
+          返回
+        </button>
+        <span class="file-preview-title">${file.name}</span>
+        <button class="file-action-btn" onclick="downloadFileById('${file.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          下载
+        </button>
+      </div>
+      <div class="csv-table-container">
+        <table class="csv-table" id="csv-table-${file.id}">
+          <thead>
+            <tr>
+  `;
+  
+  // 表头
+  if (file.data.length > 0) {
+    file.data[0].forEach((header, colIndex) => {
+      html += `<th>${header}</th>`;
+    });
+  }
+  
+  html += `
+            </tr>
+          </thead>
+          <tbody>
+  `;
+  
+  // 数据行
+  for (let i = 1; i < file.data.length; i++) {
+    html += '<tr>';
+    file.data[i].forEach((cell, colIndex) => {
+      html += `
+        <td contenteditable="true" 
+            data-row="${i}" 
+            data-col="${colIndex}"
+            onblur="updateCell('${file.id}', ${i}, ${colIndex}, this.textContent)">
+          ${cell}
+        </td>
+      `;
+    });
+    html += '</tr>';
+  }
+  
+  html += `
+          </tbody>
+        </table>
+      </div>
+      <div class="file-preview-footer">
+        <span>${file.data.length - 1} 行数据</span>
+        <button class="btn-save" onclick="saveFileChanges('${file.id}')">保存更改</button>
+      </div>
+    </div>
+  `;
+  
+  consoleContent.innerHTML = html;
+}
+
+// 渲染 HTML 预览
+function renderHTMLPreview(file) {
+  const consoleContent = document.getElementById('console-content');
+  
+  let html = `
+    <div class="file-preview">
+      <div class="file-preview-header">
+        <button class="back-btn" onclick="renderFileList()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 19l-7-7 7-7"/>
+          </svg>
+          返回
+        </button>
+        <span class="file-preview-title">${file.name}</span>
+        <button class="file-action-btn" onclick="downloadFileById('${file.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          下载
+        </button>
+      </div>
+      <div class="html-preview-container">
+        <div class="html-preview-content">
+          ${JSON.stringify(file.data, null, 2)}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  consoleContent.innerHTML = html;
+}
+
+// 更新单元格
+function updateCell(fileId, row, col, value) {
+  const file = fileManager.getFile(fileId);
+  if (file && file.data[row]) {
+    file.data[row][col] = value;
+    // 不立即保存，等用户点击"保存更改"
+  }
+}
+
+// 保存文件更改
+function saveFileChanges(fileId) {
+  const file = fileManager.getFile(fileId);
+  if (file) {
+    fileManager.updateFile(fileId, file.data);
+    addConsoleLog(`[FILE] 文件已保存: ${file.name}`, 'success');
+  }
+}
+
+// 下载文件
+function downloadFileById(fileId) {
+  fileManager.downloadFile(fileId);
+  addConsoleLog(`[FILE] 文件已下载`, 'success');
+}
+
+// 删除文件
+function deleteFileById(fileId) {
+  const file = fileManager.getFile(fileId);
+  if (file && confirm(`确定要删除文件 "${file.name}" 吗？`)) {
+    fileManager.deleteFile(fileId);
+    renderFileList();
+    addConsoleLog(`[FILE] 文件已删除: ${file.name}`, 'warning');
+  }
+}
+
+// 在文档生成后添加文件
+function onDocumentGenerated(filename, type, data, blob) {
+  const fileId = fileManager.addFile({
+    name: filename,
+    type: type === 'excel' ? 'csv' : 'html',
+    data: data,
+    blob: blob,
+    size: blob.size
+  });
+  
+  addConsoleLog(`[FILE] 文件已生成: ${filename}`, 'success');
+  
+  // 如果当前在 Files 标签页，刷新列表
+  const activeTab = document.querySelector('.console-tab.active');
+  if (activeTab && activeTab.dataset.tab === 'files') {
+    renderFileList();
+  }
+  
+  return fileId;
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+  initFileManager();
+});

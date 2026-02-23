@@ -118,6 +118,7 @@ class DocumentGenerator {
    * 下载文件
    * @param {Blob} blob - 文件 Blob
    * @param {string} filename - 文件名
+   * @returns {Object} 文件信息
    */
   downloadFile(blob, filename) {
     const url = URL.createObjectURL(blob);
@@ -128,6 +129,14 @@ class DocumentGenerator {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    
+    // 返回文件信息供外部使用
+    return {
+      blob: blob,
+      filename: filename,
+      size: blob.size,
+      type: blob.type
+    };
   }
 
   /**
@@ -316,6 +325,7 @@ class DocumentGenerator {
    * 从页面数据生成文档
    * @param {string} type - 文档类型 ('excel' 或 'word')
    * @param {string} filename - 文件名
+   * @returns {Object} 生成结果
    */
   async generateFromPageData(type, filename) {
     if (!this.pageData) {
@@ -328,21 +338,36 @@ class DocumentGenerator {
 
     try {
       let blob;
+      let data;
       
       if (type === 'excel') {
         // 将页面数据转换为表格格式
-        const tableData = this.convertToTableData(this.pageData);
-        blob = await this.generateExcel(tableData, filename);
+        data = this.convertToTableData(this.pageData);
+        blob = await this.generateExcel(data, filename);
       } else if (type === 'word') {
         // 将页面数据转换为文档格式
         const docContent = this.convertToDocContent(this.pageData);
         blob = await this.generateWord(docContent, filename);
+        data = docContent;
       } else {
         throw new Error('不支持的文档类型');
       }
 
-      this.downloadFile(blob, filename);
-      return true;
+      const fileInfo = this.downloadFile(blob, filename);
+      
+      // 触发事件通知文件已生成
+      if (typeof window !== 'undefined' && window.onDocumentGenerated) {
+        window.onDocumentGenerated(filename, type, data, blob);
+      }
+      
+      return {
+        success: true,
+        filename: filename,
+        type: type,
+        data: data,
+        blob: blob,
+        size: fileInfo.size
+      };
     } catch (error) {
       console.error('[DocumentGenerator] 文档生成失败:', error);
       throw error;

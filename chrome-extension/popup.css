@@ -862,3 +862,213 @@ body {
   border: 2px solid rgba(239, 68, 68, 0.2);
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
 }
+
+
+/* File Manager Styles */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+
+.file-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.file-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.file-action-btn {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-action-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+
+.file-action-btn svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+}
+
+.file-action-btn:hover svg {
+  color: var(--primary);
+}
+
+.file-delete-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.file-delete-btn:hover svg {
+  color: white;
+}
+
+/* File Preview */
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.file-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.back-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.file-preview-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.csv-table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.csv-table th {
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-weight: 600;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.csv-table td {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--bg);
+}
+
+.csv-table td:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  background: var(--bg-tertiary);
+}
+
+.csv-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+.file-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.html-preview-container {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.html-preview-content {
+  background: var(--bg-secondary);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
