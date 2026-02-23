@@ -4,6 +4,12 @@
 
 ---
 
+## Demo Video | 演示视频
+
+https://github.com/linlinlin-star/browser_agent/assets/演示.mp4
+
+---
+
 ## English
 
 ### What is Browser Agent?
