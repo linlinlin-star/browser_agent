@@ -215,14 +215,30 @@ class DocumentGenerator {
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cellAddress = this.encodeCellAddress({ c: C, r: R });
         const cell = sheet[cellAddress];
-        row.push(cell ? cell.v : '');
+        let value = cell ? String(cell.v) : '';
+        
+        // CSV 转义：如果值包含逗号、引号或换行符，需要用引号包裹
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          // 引号需要转义为两个引号
+          value = '"' + value.replace(/"/g, '""') + '"';
+        }
+        
+        row.push(value);
       }
-      csv += row.join(',') + '\n';
+      csv += row.join(',') + '\r\n'; // 使用 \r\n 作为行分隔符（Windows 标准）
     }
     
-    // 转换为 ArrayBuffer
+    // 添加 BOM 以支持中文（UTF-8 with BOM）
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
     const encoder = new TextEncoder();
-    return encoder.encode(csv).buffer;
+    const csvBytes = encoder.encode(csv);
+    
+    // 合并 BOM 和 CSV 内容
+    const result = new Uint8Array(bom.length + csvBytes.length);
+    result.set(bom, 0);
+    result.set(csvBytes, bom.length);
+    
+    return result.buffer;
   }
 
   /**
@@ -344,15 +360,31 @@ class DocumentGenerator {
     
     // 示例：如果页面数据包含列表
     if (pageData.items && Array.isArray(pageData.items)) {
+      if (pageData.items.length === 0) {
+        return data;
+      }
+      
       // 添加表头
       const headers = Object.keys(pageData.items[0] || {});
-      data.push(headers);
-      
-      // 添加数据行
-      pageData.items.forEach(item => {
-        const row = headers.map(header => item[header] || '');
-        data.push(row);
-      });
+      if (headers.length > 0) {
+        data.push(headers);
+        
+        // 添加数据行
+        pageData.items.forEach(item => {
+          const row = headers.map(header => {
+            const value = item[header];
+            // 确保值是字符串或数字，避免对象或数组
+            if (value === null || value === undefined) {
+              return '';
+            }
+            if (typeof value === 'object') {
+              return JSON.stringify(value);
+            }
+            return String(value);
+          });
+          data.push(row);
+        });
+      }
     }
     
     return data;
