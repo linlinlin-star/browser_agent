@@ -4,6 +4,14 @@
 
 ---
 
+## Demo Video | 演示视频
+
+https://github.com/linlinlin-star/browser_agent/assets/演示.mp4
+
+> 💡 点击上方链接查看演示视频，或直接在仓库中打开 `演示.mp4` 文件观看。
+
+---
+
 ## English
 
 ### What is Browser Agent?
@@ -15,6 +23,10 @@ A Chrome extension that helps you automate browser tasks using AI.
 - Chat with AI about web pages
 - Automate browser tasks
 - Extract content from websites
+
+### Demo
+
+<video src="20260223-0231-15.6177277.mp4" controls width="100%"></video>
 
 ### Installation
 
@@ -42,6 +54,10 @@ A Chrome extension that helps you automate browser tasks using AI.
 - 与 AI 对话讨论网页内容
 - 自动化浏览器任务
 - 从网站提取内容
+
+### 演示视频
+
+<video src="20260223-0231-15.6177277.mp4" controls width="100%"></video>
 
 ### 安装方法
 
