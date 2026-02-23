@@ -170,7 +170,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  display: flex;
+  display: none; /* 隐藏图标 */
   align-items: center;
   justify-content: center;
   font-size: 18px;

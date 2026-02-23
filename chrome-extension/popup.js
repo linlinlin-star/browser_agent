@@ -416,51 +416,53 @@ function handleError(error) {
 
 function addChatMessage(type, text, icon) {
   const messagesContainer = document.getElementById('chat-messages');
-  
+
   const message = document.createElement('div');
   message.className = `message ${type}`;
-  
-  const messageIcon = document.createElement('div');
-  messageIcon.className = `message-icon ${type}`;
-  messageIcon.textContent = icon;
-  
+
+  // 移除图标显示
+  // const messageIcon = document.createElement('div');
+  // messageIcon.className = `message-icon ${type}`;
+  // messageIcon.textContent = icon;
+
   const messageContent = document.createElement('div');
   messageContent.className = 'message-content';
-  
+
   const messageHeader = document.createElement('div');
   messageHeader.className = 'message-header';
-  
+
   const messageType = document.createElement('span');
   messageType.className = 'message-type';
   messageType.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-  
+
   const messageTime = document.createElement('span');
   messageTime.className = 'message-time';
-  messageTime.textContent = new Date().toLocaleTimeString('zh-CN', { 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit' 
+  messageTime.textContent = new Date().toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
   });
-  
+
   messageHeader.appendChild(messageType);
   messageHeader.appendChild(messageTime);
-  
+
   const messageText = document.createElement('div');
   messageText.className = 'message-text';
-  
+
   if (text.includes('\n')) {
     messageText.style.whiteSpace = 'pre-wrap';
     messageText.style.fontFamily = 'monospace';
     messageText.style.fontSize = '12px';
   }
   messageText.textContent = text;
-  
+
   messageContent.appendChild(messageHeader);
   messageContent.appendChild(messageText);
-  
-  message.appendChild(messageIcon);
+
+  // 不再添加图标元素
+  // message.appendChild(messageIcon);
   message.appendChild(messageContent);
-  
+
   messagesContainer.appendChild(message);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
