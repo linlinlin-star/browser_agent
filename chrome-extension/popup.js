@@ -1,7 +1,7 @@
 let agent = null;
 let isRunning = false;
 let currentStep = 0;
-let maxSteps = 30;
+let maxSteps = 50; // 从 30 增加到 50，支持更复杂的任务
 
 function safeAddEventListener(elementId, event, handler) {
   const element = document.getElementById(elementId);
@@ -240,7 +240,7 @@ async function handleTaskInput(task) {
     apiKey: apiConfig.apiKey,
     apiEndpoint: apiConfig.endpoint || 'https://api.openai.com/v1/chat/completions',
     model: apiConfig.model || 'gpt-4o',
-    maxSteps: 30,
+    maxSteps: 50, // 从 30 增加到 50，支持数据提取和文档生成任务
     onProgress: handleProgress,
     onError: handleError,
     onAskUser: askUser,

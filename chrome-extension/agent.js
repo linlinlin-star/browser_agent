@@ -302,7 +302,7 @@ class BrowserAgent {
       this.apiKey = config.apiKey || '';
       this.apiEndpoint = config.apiEndpoint || 'https://api.openai.com/v1/chat/completions';
       this.model = config.model || 'gpt-4o';
-      this.maxSteps = config.maxSteps || 30;
+      this.maxSteps = config.maxSteps || 50; // 从 30 增加到 50，支持更复杂的任务
       this.stepCount = 0;
       this.history = [];
       this.stopped = false;
