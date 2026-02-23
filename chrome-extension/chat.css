@@ -91,7 +91,7 @@
   height: 64px;
   background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
   border-radius: 16px;
-  display: flex;
+  display: none; /* 隐藏欢迎图标 */
   align-items: center;
   justify-content: center;
 }
@@ -172,7 +172,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  display: flex;
+  display: none; /* 隐藏头像图标 */
   align-items: center;
   justify-content: center;
   font-size: 18px;
@@ -403,6 +403,7 @@
 .typing-indicator .chat-message-avatar {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
+  display: none; /* 隐藏输入指示器图标 */
 }
 
 .typing-dots {
