@@ -6,7 +6,9 @@
 
 ## Demo Video | 演示视频
 
-https://github.com/linlinlin-star/browser_agent/assets/演示.mp4
+<video src="演示.mp4" controls autoplay loop muted width="100%">
+  Your browser does not support the video tag.
+</video>
 
 ---
 
